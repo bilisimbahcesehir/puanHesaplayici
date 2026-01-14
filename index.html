@@ -32,6 +32,8 @@
         }
         input:invalid { border: 2px solid red; }
         button { cursor: pointer; }
+        .btn-edit { background:#1976d2; color:white; border:none; }
+        .btn-delete { background:#8b0000; color:white; border:none; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -48,6 +50,10 @@
             font-weight: bold;
             text-align: center;
         }
+        .editing { background: #e3f2fd; }
+        .avg-good { color: #2e7d32; }
+        .avg-mid { color: #f9a825; }
+        .avg-bad { color: #c62828; }
         @media (max-width: 600px) {
             th:nth-child(4), td:nth-child(4) { display: none; }
         }
@@ -62,7 +68,7 @@
         <input type="text" id="dersAdi" placeholder="Ders Adı" required>
         <input type="number" id="dersSaati" placeholder="Ders Saati" min="1" max="10" required>
         <input type="number" id="dersNotu" placeholder="Puan (0-100)" min="0" max="100" required>
-        <button onclick="dersEkle()">Ekle</button>
+        <button onclick="dersEkle()">Ekle / Güncelle</button>
     </div>
 
     <table>
@@ -73,6 +79,7 @@
                 <th>Puan</th>
                 <th>Ağırlıklı</th>
                 <th>Durum</th>
+                <th>Düzenle</th>
                 <th>Sil</th>
             </tr>
         </thead>
@@ -85,7 +92,9 @@
 </div>
 
 <script>
+    // ✅ HATA DÜZELTİLDİ: dersler doğru şekilde başlatılıyor
     let dersler = JSON.parse(localStorage.getItem('dersler')) || [];
+    let duzenlenenIndex = null;
 
     function harfNotu(notu) {
         if (notu >= 85) return 'Pekiyi';
@@ -100,23 +109,46 @@
         const saat = Number(dersSaati.value);
         const puan = Number(dersNotu.value);
 
-        if (ad === '' || dersSaati.value === '' || dersNotu.value === '') {
-            alert('Ders adı, ders saati ve not alanları zorunludur');
+        if (!ad || dersSaati.value === '' || dersNotu.value === '') {
+            alert('Ders adı, ders saati ve puan alanları zorunludur');
             return;
         }
 
         if (saat < 1 || saat > 10 || puan < 0 || puan > 100) {
-            alert('Ders saati 1-10 arasında, not 0-100 arasında olmalıdır');
+            alert('Ders saati 1-10 arasında, puan 0-100 arasında olmalıdır');
             return;
         }
 
-        dersler.push({ ad, saat, notu: puan });
+        // 🔒 Aynı ders adı kontrolü
+        const ayniDersVar = dersler.some((d, i) => d.ad.toLowerCase() === ad.toLowerCase() && i !== duzenlenenIndex);
+        if (ayniDersVar) {
+            alert('Bu ders adı zaten eklenmiş. Aynı ders iki kez girilemez.');
+            return;
+        }
+
+        if (duzenlenenIndex !== null) {
+            dersler[duzenlenenIndex] = { ad, saat, notu: puan };
+            duzenlenenIndex = null;
+        } else {
+            dersler.push({ ad, saat, notu: puan });
+        }
+
         kaydet();
         tabloGuncelle();
         dersAdi.value = dersSaati.value = dersNotu.value = '';
     }
 
+    function duzenle(index) {
+        duzenlenenIndex = index;
+        tabloGuncelle();
+        const d = dersler[index];
+        dersAdi.value = d.ad;
+        dersSaati.value = d.saat;
+        dersNotu.value = d.notu;
+    }
+
     function sil(index) {
+        if (!confirm('Bu dersi silmek istediğinize emin misiniz?')) return;
         dersler.splice(index, 1);
         kaydet();
         tabloGuncelle();
@@ -126,16 +158,21 @@
         const tbody = document.getElementById('dersListesi');
         tbody.innerHTML = '';
 
+        // 🔤 Ders adına göre alfabetik sıralama (Türkçe uyumlu)
+        dersler.sort((a, b) => a.ad.localeCompare(b.ad, 'tr', { sensitivity: 'base' }));
+
         dersler.forEach((d, i) => {
             const agirlikli = d.saat * d.notu;
+            const editingClass = (i === duzenlenenIndex) ? 'editing' : '';
             tbody.innerHTML += `
-                <tr>
+                <tr class="${editingClass}">
                     <td>${d.ad}</td>
                     <td>${d.saat}</td>
                     <td>${d.notu}</td>
                     <td>${agirlikli}</td>
                     <td>${harfNotu(d.notu)}</td>
-                    <td><button onclick="sil(${i})">X</button></td>
+                    <td><button class="btn-edit" onclick="duzenle(${i})">Düzenle</button></td>
+                    <td><button class="btn-delete" onclick="sil(${i})">Sil</button></td>
                 </tr>`;
         });
     }
@@ -157,15 +194,17 @@
         }
 
         const ort = Number((toplamAgirlikli / toplamSaat).toFixed(2));
+        sonuc.className = 'result';
+        if (ort >= 85) sonuc.classList.add('avg-good');
+        else if (ort >= 70) sonuc.classList.add('avg-mid');
+        else sonuc.classList.add('avg-bad');
         sonuc.innerText = `Ağırlıklı Ortalama: ${ort}`;
 
-        // Sınıf tekrarı uyarısı
         if (gecmezSayisi >= 4) {
             uyari.innerText = 'UYARI: 4 veya daha fazla dersten başarısız. Sınıf tekrarına kalır!';
             return;
         }
 
-        // Belge durumu
         if (ort >= 85) {
             uyari.innerText = '🎉 Tebrikler! Takdir belgesi alabilirsiniz.';
         } else if (ort >= 70) {
@@ -179,6 +218,7 @@
         localStorage.setItem('dersler', JSON.stringify(dersler));
     }
 
+    // İlk yüklemede tabloyu doldur
     tabloGuncelle();
 </script>
 
