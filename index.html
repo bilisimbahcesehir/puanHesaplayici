@@ -39,6 +39,10 @@
             border-collapse: collapse;
             margin-top: 15px;
         }
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         th, td {
             border: 1px solid #ccc;
             padding: 8px;
@@ -55,7 +59,26 @@
         .avg-mid { color: #f9a825; }
         .avg-bad { color: #c62828; }
         @media (max-width: 600px) {
-            th:nth-child(4), td:nth-child(4) { display: none; }
+            table thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            tr { margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; }
+            td {
+                text-align: right;
+                padding-left: 50%;
+                position: relative;
+                border: none;
+                border-bottom: 1px solid #eee;
+            }
+            td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                font-weight: bold;
+                text-align: left;
+            }
+        }
         }
     </style>
 </head>
@@ -71,6 +94,7 @@
         <button onclick="dersEkle()">Ekle / Güncelle</button>
     </div>
 
+    <div class="table-wrapper">
     <table>
         <thead>
             <tr>
@@ -85,6 +109,7 @@
         </thead>
         <tbody id="dersListesi"></tbody>
     </table>
+</div>
 
     <button style="margin-top:15px;width:100%" onclick="hesapla()">Ağırlıklı Ortalama Hesapla</button>
     <div class="result" id="sonuc"></div>
@@ -166,13 +191,13 @@
             const editingClass = (i === duzenlenenIndex) ? 'editing' : '';
             tbody.innerHTML += `
                 <tr class="${editingClass}">
-                    <td>${d.ad}</td>
-                    <td>${d.saat}</td>
-                    <td>${d.notu}</td>
-                    <td>${agirlikli}</td>
-                    <td>${harfNotu(d.notu)}</td>
-                    <td><button class="btn-edit" onclick="duzenle(${i})">Düzenle</button></td>
-                    <td><button class="btn-delete" onclick="sil(${i})">Sil</button></td>
+                    <td data-label="Ders">${d.ad}</td>
+                    <td data-label="Saat">${d.saat}</td>
+                    <td data-label="Puan">${d.notu}</td>
+                    <td data-label="Ağırlıklı">${agirlikli}</td>
+                    <td data-label="Durum">${harfNotu(d.notu)}</td>
+                    <td data-label="Düzenle"><button class="btn-edit" onclick="duzenle(${i})">Düzenle</button></td>
+                    <td data-label="Sil"><button class="btn-delete" onclick="sil(${i})">Sil</button></td>
                 </tr>`;
         });
     }
