@@ -156,11 +156,20 @@
             return;
         }
 
-        const ort = (toplamAgirlikli / toplamSaat).toFixed(2);
+        const ort = Number((toplamAgirlikli / toplamSaat).toFixed(2));
         sonuc.innerText = `Ağırlıklı Ortalama: ${ort}`;
 
+        // Sınıf tekrarı uyarısı
         if (gecmezSayisi >= 4) {
             uyari.innerText = 'UYARI: 4 veya daha fazla dersten başarısız. Sınıf tekrarına kalır!';
+            return;
+        }
+
+        // Belge durumu
+        if (ort >= 85) {
+            uyari.innerText = '🎉 Tebrikler! Takdir belgesi alabilirsiniz.';
+        } else if (ort >= 70) {
+            uyari.innerText = '👏 Tebrikler! Teşekkür belgesi alabilirsiniz.';
         } else {
             uyari.innerText = '';
         }
