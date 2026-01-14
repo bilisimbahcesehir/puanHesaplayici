@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gelişmiş Ağırlıklı Not Hesaplama</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            padding: 15px;
+        }
+        h1 { text-align: center; }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input, button {
+            padding: 8px;
+            flex: 1;
+            min-width: 120px;
+        }
+        input:invalid { border: 2px solid red; }
+        button { cursor: pointer; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            th:nth-child(4), td:nth-child(4) { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Ağırlıklı Not Hesaplama</h1>
+
+    <div class="row">
+        <input type="text" id="dersAdi" placeholder="Ders Adı" required>
+        <input type="number" id="dersSaati" placeholder="Ders Saati" min="1" max="10" required>
+        <input type="number" id="dersNotu" placeholder="Puan (0-100)" min="0" max="100" required>
+        <button onclick="dersEkle()">Ekle</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Ders</th>
+                <th>Saat</th>
+                <th>Puan</th>
+                <th>Ağırlıklı</th>
+                <th>Durum</th>
+                <th>Sil</th>
+            </tr>
+        </thead>
+        <tbody id="dersListesi"></tbody>
+    </table>
+
+    <button style="margin-top:15px;width:100%" onclick="hesapla()">Ağırlıklı Ortalama Hesapla</button>
+    <div class="result" id="sonuc"></div>
+    <div class="result" id="uyari" style="color:red"></div>
+</div>
+
+<script>
+    let dersler = JSON.parse(localStorage.getItem('dersler')) || [];
+
+    function harfNotu(notu) {
+        if (notu >= 85) return 'Pekiyi';
+        if (notu >= 70) return 'İyi';
+        if (notu >= 60) return 'Orta';
+        if (notu >= 50) return 'Geçer';
+        return 'Geçmez';
+    }
+
+    function dersEkle() {
+        const ad = dersAdi.value.trim();
+        const saat = Number(dersSaati.value);
+        const puan = Number(dersNotu.value);
+
+        if (ad === '' || dersSaati.value === '' || dersNotu.value === '') {
+            alert('Ders adı, ders saati ve not alanları zorunludur');
+            return;
+        }
+
+        if (saat < 1 || saat > 10 || puan < 0 || puan > 100) {
+            alert('Ders saati 1-10 arasında, not 0-100 arasında olmalıdır');
+            return;
+        }
+
+        dersler.push({ ad, saat, notu: puan });
+        kaydet();
+        tabloGuncelle();
+        dersAdi.value = dersSaati.value = dersNotu.value = '';
+    }
+
+    function sil(index) {
+        dersler.splice(index, 1);
+        kaydet();
+        tabloGuncelle();
+    }
+
+    function tabloGuncelle() {
+        const tbody = document.getElementById('dersListesi');
+        tbody.innerHTML = '';
+
+        dersler.forEach((d, i) => {
+            const agirlikli = d.saat * d.notu;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${d.ad}</td>
+                    <td>${d.saat}</td>
+                    <td>${d.notu}</td>
+                    <td>${agirlikli}</td>
+                    <td>${harfNotu(d.notu)}</td>
+                    <td><button onclick="sil(${i})">X</button></td>
+                </tr>`;
+        });
+    }
+
+    function hesapla() {
+        let toplamAgirlikli = 0;
+        let toplamSaat = 0;
+        let gecmezSayisi = 0;
+
+        dersler.forEach(d => {
+            toplamAgirlikli += d.saat * d.notu;
+            toplamSaat += d.saat;
+            if (harfNotu(d.notu) === 'Geçmez') gecmezSayisi++;
+        });
+
+        if (!toplamSaat) {
+            alert('Ders ekleyin');
+            return;
+        }
+
+        const ort = (toplamAgirlikli / toplamSaat).toFixed(2);
+        sonuc.innerText = `Ağırlıklı Ortalama: ${ort}`;
+
+        if (gecmezSayisi >= 4) {
+            uyari.innerText = 'UYARI: 4 veya daha fazla dersten başarısız. Sınıf tekrarına kalır!';
+        } else {
+            uyari.innerText = '';
+        }
+    }
+
+    function kaydet() {
+        localStorage.setItem('dersler', JSON.stringify(dersler));
+    }
+
+    tabloGuncelle();
+</script>
+
+</body>
+</html>
